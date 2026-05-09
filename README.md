@@ -2,7 +2,7 @@
 
 An Obsidian plugin that renders a compact, inline search UI directly inside a note. It is powered by the [Omnisearch](https://github.com/scambier/obsidian-omnisearch) API and includes plugin settings for default page size and highlight appearance.
 
-!()[./assets/embedded-omnisearch-demo.gif]
+!()[assets/embedded-omnisearch-demo.gif]
 
 ## Features
 
