@@ -147,3 +147,6 @@ The plugin applies highlight color and opacity through the `--eo-highlight-color
 ## License
 
 MIT
+
+## Credits
+[scambier](https://github.com/scambier) for the great Omnisearch plugin.
