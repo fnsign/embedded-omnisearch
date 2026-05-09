@@ -25,6 +25,12 @@ An Obsidian plugin that renders a compact, inline search UI directly inside a no
 
 ## Installation
 
+### Via BRAT community plugin (preferred)
+
+Install via the [BRAT community plugin](https://github.com/TfTHacker/obsidian42-brat) to obtain the latest version, as this plugin is not (yet) community approved.
+
+### Manually
+
 1. Copy this folder (`manifest.json`, `main.js`, `styles.css`) into your vault at:
 
    ```
