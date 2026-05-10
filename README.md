@@ -1,3 +1,7 @@
+![GitHub Release](https://img.shields.io/github/v/release/fnsign/embedded-omnisearch) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/fnsign/embedded-omnisearch/total) ![GitHub License](https://img.shields.io/github/license/fnsign/embedded-omnisearch)
+
+----
+
 # Embedded-Omnisearch
 
 An Obsidian plugin that renders a compact, inline search UI directly inside a note. It is powered by the [Omnisearch](https://github.com/scambier/obsidian-omnisearch) API and includes plugin settings for default page size and highlight appearance.
