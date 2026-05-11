@@ -312,20 +312,30 @@ class SearchView extends obsidian.Component {
 		/* Status */
 		this.statusEl = root.createDiv({ cls: "eo-status" });
 
+		/* Top pagination */
+		this.topPageBar = this.createPaginationBar(root);
+
 		/* Results list */
 		this.resultsEl = root.createDiv({ cls: "eo-results" });
 
 		/* Pagination */
-		this.pageBar = root.createDiv({ cls: "eo-page-bar" });
-		this.pageBar.style.display = "none";
-		this.prevBtn = this.pageBar.createEl("button", { cls: "eo-page-btn", text: "<", attr: { type: "button" } });
-		this.pageInfo = this.pageBar.createEl("span", { cls: "eo-page-info" });
-		this.nextBtn = this.pageBar.createEl("button", { cls: "eo-page-btn", text: ">", attr: { type: "button" } });
+		this.pageBar = this.createPaginationBar(root);
 
 		/* Popover */
 		this.popover = createEl("div", { cls: "eo-popover" });
 		this.popover.style.display = "none";
 		document.body.appendChild(this.popover);
+	}
+
+	createPaginationBar(parent) {
+		var bar = parent.createDiv({ cls: "eo-page-bar" });
+		bar.style.display = "none";
+		return {
+			bar: bar,
+			prevBtn: bar.createEl("button", { cls: "eo-page-btn", text: "<", attr: { type: "button" } }),
+			pageInfo: bar.createEl("span", { cls: "eo-page-info" }),
+			nextBtn: bar.createEl("button", { cls: "eo-page-btn", text: ">", attr: { type: "button" } })
+		};
 	}
 
 	/* --- Bind events --- */
@@ -344,7 +354,7 @@ class SearchView extends obsidian.Component {
 				this.resultsEl.empty();
 				this.results = [];
 				this.page = 0;
-				this.pageBar.style.display = "none";
+				this.setPaginationDisplay("none");
 				return;
 			}
 			this.timer = setTimeout(() => this.search(this.input.value), 350);
@@ -362,11 +372,20 @@ class SearchView extends obsidian.Component {
 		});
 
 		/* Pagination */
-		this.registerDomEvent(this.prevBtn, "click", (e) => {
+		this.registerDomEvent(this.topPageBar.prevBtn, "click", (e) => {
 			e.preventDefault();
 			if (this.page > 0) { this.page--; this.renderPage(); }
 		});
-		this.registerDomEvent(this.nextBtn, "click", (e) => {
+		this.registerDomEvent(this.topPageBar.nextBtn, "click", (e) => {
+			e.preventDefault();
+			var total = Math.ceil(this.results.length / this.pageSize);
+			if (this.page < total - 1) { this.page++; this.renderPage(); }
+		});
+		this.registerDomEvent(this.pageBar.prevBtn, "click", (e) => {
+			e.preventDefault();
+			if (this.page > 0) { this.page--; this.renderPage(); }
+		});
+		this.registerDomEvent(this.pageBar.nextBtn, "click", (e) => {
 			e.preventDefault();
 			var total = Math.ceil(this.results.length / this.pageSize);
 			if (this.page < total - 1) { this.page++; this.renderPage(); }
@@ -424,7 +443,7 @@ class SearchView extends obsidian.Component {
 		this.results = [];
 		this.page = 0;
 		this.terms = [];
-		this.pageBar.style.display = "none";
+		this.setPaginationDisplay("none");
 		this.clearBtn.style.opacity = "0";
 		this.clearBtn.style.pointerEvents = "none";
 		this.input.classList.remove("has-value");
@@ -432,11 +451,28 @@ class SearchView extends obsidian.Component {
 		this.input.focus();
 	}
 
+	setPaginationDisplay(display) {
+		this.topPageBar.bar.style.display = display;
+		this.pageBar.bar.style.display = display;
+	}
+
+	updatePaginationControls(total) {
+		var bars = [this.topPageBar, this.pageBar];
+		for (var bar of bars) {
+			bar.bar.style.display = total > 1 ? "flex" : "none";
+			bar.prevBtn.disabled = this.page === 0;
+			bar.prevBtn.style.opacity = this.page === 0 ? "0.35" : "1";
+			bar.nextBtn.disabled = this.page >= total - 1;
+			bar.nextBtn.style.opacity = this.page >= total - 1 ? "0.35" : "1";
+			bar.pageInfo.textContent = (this.page + 1) + " / " + total;
+		}
+	}
+
 	/* --- Search --- */
 	async search(raw) {
 		var q = String(raw || "").trim();
 		this.resultsEl.empty();
-		this.pageBar.style.display = "none";
+		this.setPaginationDisplay("none");
 		this.results = [];
 		this.page = 0;
 		this.terms = [];
@@ -507,16 +543,7 @@ class SearchView extends obsidian.Component {
 			else tdBody.appendChild(hl);
 		}
 
-		if (total > 1) {
-			this.pageBar.style.display = "flex";
-			this.prevBtn.disabled = this.page === 0;
-			this.prevBtn.style.opacity = this.page === 0 ? "0.35" : "1";
-			this.nextBtn.disabled = this.page >= total - 1;
-			this.nextBtn.style.opacity = this.page >= total - 1 ? "0.35" : "1";
-			this.pageInfo.textContent = (this.page + 1) + " / " + total;
-		} else {
-			this.pageBar.style.display = "none";
-		}
+		this.updatePaginationControls(total);
 	}
 }
 
