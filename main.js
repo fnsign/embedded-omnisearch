@@ -9,6 +9,8 @@ var RE_DIACRITICS = /[\u0300-\u036f]/g;
 var RE_WS = /\s+/;
 var RE_EMBEDDED_BLOCK = /^```embedded-omnisearch(?:\s|$)/m;
 var DEFAULT_SETTINGS = { pageSize: 10, highlightColor: "#cca300", highlightOpacity: 0.35 };
+var HIGHLIGHT_OPEN = '<mark class="omnisearch-highlight" style="background-color:var(--eo-highlight-color, rgba(204,163,0,0.35));color:var(--text-normal);padding:0 .15em;border-radius:3px">';
+var HIGHLIGHT_CLOSE = '</mark>';
 
 /* === Helpers === */
 function escHtml(s) { return String(s).replace(RE_HTML, function (c) { return HTML_MAP[c]; }); }
@@ -84,7 +86,7 @@ function highlight(html, terms) {
 	var plain = stripEl.textContent || "";
 	if (!plain) return "";
 	var m = foldWithMap(plain), f = m.f, s = m.s, e = m.e, o = m.o;
-	if (!f || !terms.length) return plain;
+	if (!f || !terms.length) return escHtml(plain);
 	var ranges = [];
 	for (var t of terms) {
 		if (!t) continue;
@@ -94,7 +96,7 @@ function highlight(html, terms) {
 			pos = idx + t.length;
 		}
 	}
-	if (!ranges.length) return plain;
+	if (!ranges.length) return escHtml(plain);
 	ranges.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
 	var merged = [ranges[0]];
 	for (var i = 1; i < ranges.length; i++) {
@@ -105,13 +107,10 @@ function highlight(html, terms) {
 	var out = "", cur = 0;
 	for (var r of merged) {
 		out += escHtml(o.slice(cur, r[0]));
-		out += '<mark class="omnisearch-highlight" style="background-color:var(--eo-highlight-color, rgba(204,163,0,0.35));color:var(--text-normal);padding:0 .15em;border-radius:3px">'
-			+ escHtml(o.slice(r[0], r[1])) + '</mark>';
+		out += HIGHLIGHT_OPEN + escHtml(o.slice(r[0], r[1])) + HIGHLIGHT_CLOSE;
 		cur = r[1];
 	}
-	var span = document.createElement("span");
-	span.innerHTML = out + escHtml(o.slice(cur));
-	return span;
+	return out + escHtml(o.slice(cur));
 }
 
 /* === Plugin === */
@@ -317,14 +316,34 @@ class SearchView extends obsidian.Component {
 
 		/* Results list */
 		this.resultsEl = root.createDiv({ cls: "eo-results" });
+		this.buildResultsTable();
 
 		/* Pagination */
 		this.pageBar = this.createPaginationBar(root);
+		this.paginationBars = [this.topPageBar, this.pageBar];
 
 		/* Popover */
 		this.popover = createEl("div", { cls: "eo-popover" });
 		this.popover.style.display = "none";
 		document.body.appendChild(this.popover);
+	}
+
+	buildResultsTable() {
+		var tbl = this.resultsEl.createEl("table", { cls: "eo-results-table" });
+		tbl.style.display = "none";
+		var colgroup = tbl.createEl("colgroup");
+		colgroup.createEl("col", { cls: "eo-col-file" });
+		colgroup.createEl("col", { cls: "eo-col-score" });
+		colgroup.createEl("col", { cls: "eo-col-preview" });
+
+		var thead = tbl.createEl("thead", { cls: "eo-results-head" });
+		var headRow = thead.createEl("tr", { cls: "eo-results-head-row" });
+		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-file", text: "File" });
+		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-score", text: "Score" });
+		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-preview", text: "Preview" });
+
+		this.resultsTable = tbl;
+		this.resultsBody = tbl.createEl("tbody", { cls: "eo-results-body" });
 	}
 
 	createPaginationBar(parent) {
@@ -344,17 +363,11 @@ class SearchView extends obsidian.Component {
 		this.registerDomEvent(this.input, "input", () => {
 			var v = this.input.value.trim();
 			var has = !!v;
-			this.clearBtn.style.opacity = has ? "1" : "0";
-			this.clearBtn.style.pointerEvents = has ? "auto" : "none";
-			this.input.classList.toggle("has-value", has);
-			this.input.style.fontStyle = has ? "normal" : "italic";
+			this.setInputState(has);
 			clearTimeout(this.timer);
 			if (!has) {
 				this.statusEl.textContent = "";
-				this.resultsEl.empty();
-				this.results = [];
-				this.page = 0;
-				this.setPaginationDisplay("none");
+				this.resetResults();
 				return;
 			}
 			this.timer = setTimeout(() => this.search(this.input.value), 350);
@@ -372,24 +385,16 @@ class SearchView extends obsidian.Component {
 		});
 
 		/* Pagination */
-		this.registerDomEvent(this.topPageBar.prevBtn, "click", (e) => {
-			e.preventDefault();
-			if (this.page > 0) { this.page--; this.renderPage(); }
-		});
-		this.registerDomEvent(this.topPageBar.nextBtn, "click", (e) => {
-			e.preventDefault();
-			var total = Math.ceil(this.results.length / this.pageSize);
-			if (this.page < total - 1) { this.page++; this.renderPage(); }
-		});
-		this.registerDomEvent(this.pageBar.prevBtn, "click", (e) => {
-			e.preventDefault();
-			if (this.page > 0) { this.page--; this.renderPage(); }
-		});
-		this.registerDomEvent(this.pageBar.nextBtn, "click", (e) => {
-			e.preventDefault();
-			var total = Math.ceil(this.results.length / this.pageSize);
-			if (this.page < total - 1) { this.page++; this.renderPage(); }
-		});
+		for (var bar of this.paginationBars) {
+			this.registerDomEvent(bar.prevBtn, "click", (e) => {
+				e.preventDefault();
+				this.changePage(-1);
+			});
+			this.registerDomEvent(bar.nextBtn, "click", (e) => {
+				e.preventDefault();
+				this.changePage(1);
+			});
+		}
 
 		/* Result clicks — open in preview */
 		this.registerDomEvent(this.resultsEl, "click", async (ev) => {
@@ -439,26 +444,33 @@ class SearchView extends obsidian.Component {
 	clearAll() {
 		this.input.value = "";
 		this.statusEl.textContent = "";
-		this.resultsEl.empty();
+		this.resetResults();
+		this.setInputState(false);
+		this.input.focus();
+	}
+
+	setInputState(hasValue) {
+		this.clearBtn.style.opacity = hasValue ? "1" : "0";
+		this.clearBtn.style.pointerEvents = hasValue ? "auto" : "none";
+		this.input.classList.toggle("has-value", hasValue);
+		this.input.style.fontStyle = hasValue ? "normal" : "italic";
+	}
+
+	resetResults() {
+		if (this.resultsBody) this.resultsBody.empty();
+		if (this.resultsTable) this.resultsTable.style.display = "none";
 		this.results = [];
 		this.page = 0;
 		this.terms = [];
 		this.setPaginationDisplay("none");
-		this.clearBtn.style.opacity = "0";
-		this.clearBtn.style.pointerEvents = "none";
-		this.input.classList.remove("has-value");
-		this.input.style.fontStyle = "italic";
-		this.input.focus();
 	}
 
 	setPaginationDisplay(display) {
-		this.topPageBar.bar.style.display = display;
-		this.pageBar.bar.style.display = display;
+		for (var bar of this.paginationBars) bar.bar.style.display = display;
 	}
 
 	updatePaginationControls(total) {
-		var bars = [this.topPageBar, this.pageBar];
-		for (var bar of bars) {
+		for (var bar of this.paginationBars) {
 			bar.bar.style.display = total > 1 ? "flex" : "none";
 			bar.prevBtn.disabled = this.page === 0;
 			bar.prevBtn.style.opacity = this.page === 0 ? "0.35" : "1";
@@ -468,14 +480,25 @@ class SearchView extends obsidian.Component {
 		}
 	}
 
+	changePage(delta) {
+		var total = Math.ceil(this.results.length / this.pageSize);
+		var nextPage = this.page + delta;
+		if (nextPage < 0 || nextPage > total - 1 || nextPage === this.page) return;
+		this.page = nextPage;
+		this.renderPage();
+		this.scrollToResultsTop();
+	}
+
+	scrollToResultsTop() {
+		var anchor = this.rootEl;
+		if (!anchor || typeof anchor.scrollIntoView !== "function") return;
+		anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+	}
+
 	/* --- Search --- */
 	async search(raw) {
 		var q = String(raw || "").trim();
-		this.resultsEl.empty();
-		this.setPaginationDisplay("none");
-		this.results = [];
-		this.page = 0;
-		this.terms = [];
+		this.resetResults();
 		if (!q) { this.statusEl.textContent = ""; return; }
 
 		var api = getApi();
@@ -492,9 +515,28 @@ class SearchView extends obsidian.Component {
 		this.renderPage();
 	}
 
+	getResultTerms(result) {
+		var terms = this.terms.slice();
+		var foundWords = result.foundWords || [];
+		for (var i = 0; i < foundWords.length; i++) {
+			var word = norm(foundWords[i]);
+			if (!word || terms.indexOf(word) >= 0) continue;
+			terms.push(word);
+		}
+		return terms;
+	}
+
+	renderRow(result) {
+		var path = String(result.path || "");
+		return '<tr class="eo-results-row" data-filepath="' + escHtml(path) + '">' 
+			+ '<td class="eo-results-cell eo-results-file"><a class="internal-link eo-results-link" data-href="' + escHtml(path) + '" href="' + escHtml(path) + '">' + escHtml(bname(path)) + '</a></td>'
+			+ '<td class="eo-results-cell eo-results-score">' + Math.round(result.score || 0) + '</td>'
+			+ '<td class="eo-results-cell eo-results-preview">' + highlight(result.excerpt, this.getResultTerms(result)) + '</td>'
+			+ '</tr>';
+	}
+
 	/* --- Render one page --- */
 	renderPage() {
-		this.resultsEl.empty();
 		var ps = this.pageSize;
 		var total = Math.ceil(this.results.length / ps);
 		var start = this.page * ps;
@@ -502,46 +544,8 @@ class SearchView extends obsidian.Component {
 		if (!items.length) return;
 
 		this.statusEl.textContent = this.results.length + " results \u2014 page " + (this.page + 1) + " of " + total;
-
-		var tbl = this.resultsEl.createEl("table", { cls: "eo-results-table" });
-		var colgroup = tbl.createEl("colgroup");
-		colgroup.createEl("col", { cls: "eo-col-file" });
-		colgroup.createEl("col", { cls: "eo-col-score" });
-		colgroup.createEl("col", { cls: "eo-col-preview" });
-
-		var thead = tbl.createEl("thead", { cls: "eo-results-head" });
-		var headRow = thead.createEl("tr", { cls: "eo-results-head-row" });
-		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-file", text: "File" });
-		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-score", text: "Score" });
-		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-preview", text: "Preview" });
-
-		var tbody = tbl.createEl("tbody", { cls: "eo-results-body" });
-
-		for (var r of items) {
-			var tr = tbody.createEl("tr", { cls: "eo-results-row" });
-			tr.dataset.filepath = r.path || "";
-
-			var tdFile = tr.createEl("td", { cls: "eo-results-cell eo-results-file" });
-			tdFile.createEl("a", {
-				cls: "internal-link eo-results-link",
-				text: bname(r.path),
-				attr: { "data-href": r.path, href: r.path }
-			});
-
-			tr.createEl("td", {
-				cls: "eo-results-cell eo-results-score",
-				text: String(Math.round(r.score || 0))
-			});
-
-			var tdBody = tr.createEl("td", { cls: "eo-results-cell eo-results-preview" });
-			var uniq = Array.from(new Set(
-				this.terms.concat((r.foundWords || []).map(norm)).filter(Boolean)
-			)).sort(function (a, b) { return b.length - a.length; });
-
-			var hl = highlight(r.excerpt, uniq);
-			if (typeof hl === "string") tdBody.textContent = hl;
-			else tdBody.appendChild(hl);
-		}
+		this.resultsBody.innerHTML = items.map((r) => this.renderRow(r)).join("");
+		this.resultsTable.style.display = "table";
 
 		this.updatePaginationControls(total);
 	}
