@@ -557,88 +557,116 @@ class EmbeddedOmnisearchSettingTab extends obsidian.PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display() {
-		var containerEl = this.containerEl;
-		containerEl.empty();
+	async updateSetting(key, value) {
+		if (this.plugin.settings[key] === value) return;
+		this.plugin.settings[key] = value;
+		await this.plugin.saveSettings();
+	}
 
-		containerEl.createEl("h2", { text: "Embedded-Omnisearch Settings" });
+	addResetButton(setting, onReset) {
+		setting.addButton((button) => {
+			button.setButtonText("Reset");
+			button.setTooltip("Reset to default");
+			button.onClick(onReset);
+		});
+	}
 
-		new obsidian.Setting(containerEl)
+	createPageSizeSetting(containerEl) {
+		var textControl = null;
+		var setting = new obsidian.Setting(containerEl)
 			.setName("Results per page")
-			.setDesc("Default pageSize value. A code block with pageSize: ... overrides this setting.")
-			.addText((text) => {
-				var commitPageSize = async () => {
-					var normalized = clampPageSize(text.getValue());
-					if (text.getValue() !== String(normalized)) text.setValue(String(normalized));
-					if (this.plugin.settings.pageSize === normalized) return;
-					this.plugin.settings.pageSize = normalized;
-					await this.plugin.saveSettings();
-				};
+			.setDesc("Default pageSize value. A code block with pageSize: ... overrides this setting.");
 
-				text.setPlaceholder(String(DEFAULT_SETTINGS.pageSize));
-				text.setValue(String(this.plugin.settings.pageSize));
-				text.inputEl.type = "number";
-				text.inputEl.min = "1";
-				text.inputEl.max = "100";
-				text.inputEl.step = "1";
-				text.inputEl.addEventListener("change", commitPageSize);
-				text.inputEl.addEventListener("blur", commitPageSize);
-			});
+		setting.addText((text) => {
+			textControl = text;
+			var commitPageSize = async () => {
+				var normalized = clampPageSize(text.getValue());
+				var normalizedText = String(normalized);
+				if (text.getValue() !== normalizedText) text.setValue(normalizedText);
+				await this.updateSetting("pageSize", normalized);
+			};
 
-		var colorSetting = new obsidian.Setting(containerEl)
+			text.setPlaceholder(String(DEFAULT_SETTINGS.pageSize));
+			text.setValue(String(this.plugin.settings.pageSize));
+			text.inputEl.type = "number";
+			text.inputEl.min = "1";
+			text.inputEl.max = "100";
+			text.inputEl.step = "1";
+			text.inputEl.addEventListener("change", commitPageSize);
+			text.inputEl.addEventListener("blur", commitPageSize);
+		});
+
+		this.addResetButton(setting, async () => {
+			var defaultValue = DEFAULT_SETTINGS.pageSize;
+			if (textControl) textControl.setValue(String(defaultValue));
+			await this.updateSetting("pageSize", defaultValue);
+		});
+	}
+
+	createHighlightColorSetting(containerEl) {
+		var pickerControl = null;
+		var textControl = null;
+		var setting = new obsidian.Setting(containerEl)
 			.setName("Highlight color")
 			.setDesc("Color used to highlight matching terms.");
 
-		if (typeof colorSetting.addColorPicker === "function") {
-			colorSetting.addColorPicker((picker) => {
+		if (typeof setting.addColorPicker === "function") {
+			setting.addColorPicker((picker) => {
+				pickerControl = picker;
 				picker.setValue(this.plugin.settings.highlightColor);
 				picker.onChange(async (value) => {
 					var normalized = normalizeHexColor(value);
 					if (normalized !== value) picker.setValue(normalized);
-					if (this.plugin.settings.highlightColor === normalized) return;
-					this.plugin.settings.highlightColor = normalized;
-					await this.plugin.saveSettings();
+					await this.updateSetting("highlightColor", normalized);
 				});
 			});
 		} else {
-			colorSetting.addText((text) => {
+			setting.addText((text) => {
+				textControl = text;
 				text.setValue(this.plugin.settings.highlightColor);
 				text.inputEl.type = "color";
 				text.inputEl.addEventListener("change", async () => {
 					var normalized = normalizeHexColor(text.getValue());
 					text.setValue(normalized);
-					if (this.plugin.settings.highlightColor === normalized) return;
-					this.plugin.settings.highlightColor = normalized;
-					await this.plugin.saveSettings();
+					await this.updateSetting("highlightColor", normalized);
 				});
 			});
 		}
 
-		var opacitySetting = new obsidian.Setting(containerEl)
+		this.addResetButton(setting, async () => {
+			var defaultValue = DEFAULT_SETTINGS.highlightColor;
+			if (pickerControl) pickerControl.setValue(defaultValue);
+			if (textControl) textControl.setValue(defaultValue);
+			await this.updateSetting("highlightColor", defaultValue);
+		});
+	}
+
+	createHighlightOpacitySetting(containerEl) {
+		var sliderControl = null;
+		var textControl = null;
+		var setting = new obsidian.Setting(containerEl)
 			.setName("Highlight opacity")
 			.setDesc("Opacity of the highlight background from 0% to 100%.");
 
-		if (typeof opacitySetting.addSlider === "function") {
-			opacitySetting.addSlider((slider) => {
+		if (typeof setting.addSlider === "function") {
+			setting.addSlider((slider) => {
+				sliderControl = slider;
 				slider.setLimits(0, 100, 5);
 				slider.setValue(Math.round(this.plugin.settings.highlightOpacity * 100));
 				if (typeof slider.setDynamicTooltip === "function") slider.setDynamicTooltip();
 				slider.onChange(async (value) => {
 					var normalized = clampOpacity(value / 100);
-					if (this.plugin.settings.highlightOpacity === normalized) return;
-					this.plugin.settings.highlightOpacity = normalized;
-					await this.plugin.saveSettings();
+					await this.updateSetting("highlightOpacity", normalized);
 				});
 			});
 		} else {
-			opacitySetting.addText((text) => {
+			setting.addText((text) => {
+				textControl = text;
 				var commitOpacity = async () => {
 					var normalized = clampOpacity(parseFloat(text.getValue()) / 100);
 					var displayValue = String(Math.round(normalized * 100));
 					if (text.getValue() !== displayValue) text.setValue(displayValue);
-					if (this.plugin.settings.highlightOpacity === normalized) return;
-					this.plugin.settings.highlightOpacity = normalized;
-					await this.plugin.saveSettings();
+					await this.updateSetting("highlightOpacity", normalized);
 				};
 
 				text.setPlaceholder(String(Math.round(DEFAULT_SETTINGS.highlightOpacity * 100)));
@@ -651,6 +679,25 @@ class EmbeddedOmnisearchSettingTab extends obsidian.PluginSettingTab {
 				text.inputEl.addEventListener("blur", commitOpacity);
 			});
 		}
+
+		this.addResetButton(setting, async () => {
+			var defaultValue = DEFAULT_SETTINGS.highlightOpacity;
+			var displayValue = Math.round(defaultValue * 100);
+			if (sliderControl) sliderControl.setValue(displayValue);
+			if (textControl) textControl.setValue(String(displayValue));
+			await this.updateSetting("highlightOpacity", defaultValue);
+		});
+	}
+
+	display() {
+		var containerEl = this.containerEl;
+		containerEl.empty();
+
+		containerEl.createEl("h2", { text: "Embedded-Omnisearch Settings" });
+
+		this.createPageSizeSetting(containerEl);
+		this.createHighlightColorSetting(containerEl);
+		this.createHighlightOpacitySetting(containerEl);
 	}
 }
 
