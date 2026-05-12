@@ -31,6 +31,14 @@ An Obsidian plugin that renders a compact, inline search UI directly inside a no
 - [Obsidian](https://obsidian.md/) v1.0.0 or later.
 - [Omnisearch](https://github.com/scambier/obsidian-omnisearch) community plugin, installed and enabled.
 
+## Disclosures
+
+- This plugin does not send telemetry.
+- This plugin does not make network requests.
+- This plugin does not access files outside the current Obsidian vault.
+- This plugin requires the Omnisearch community plugin to be installed and enabled.
+
+
 ## Installation
 
 ### Via BRAT community plugin (preferred)
