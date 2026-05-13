@@ -1,7 +1,9 @@
 /* === Embedded Omnisearch – Plugin Styles === */
 
-.eo-hidden {
-	display: none !important;
+.eo-hidden,
+.eo-wrap .eo-hidden,
+.eo-popover.eo-hidden {
+	display: none;
 }
 
 /* --- Wrapper --- */
@@ -35,9 +37,9 @@
 	font-style: normal;
 }
 
-.eo-wrap input.omnisearch-input-field:focus,
-.eo-wrap input.omnisearch-input-field.has-value {
-	box-shadow: inset 0 0 0 3px var(--background-modifier-border-hover) !important;
+.eo-wrap .eo-input-wrap input.omnisearch-input-field:focus,
+.eo-wrap .eo-input-wrap input.omnisearch-input-field.has-value {
+	box-shadow: inset 0 0 0 3px var(--background-modifier-border-hover);
 }
 
 .eo-wrap input.omnisearch-input-field::selection {
@@ -104,16 +106,16 @@
 	background: transparent;
 }
 
-.eo-results-table,
-.eo-results-table thead,
-.eo-results-table tbody,
-.eo-results-table tr,
-.eo-results-table th,
-.eo-results-table td,
-.eo-results-table colgroup,
-.eo-results-table col {
-	border: 0 !important;
-	box-shadow: none !important;
+.eo-wrap table.eo-results-table,
+.eo-wrap table.eo-results-table thead,
+.eo-wrap table.eo-results-table tbody,
+.eo-wrap table.eo-results-table tr,
+.eo-wrap table.eo-results-table th,
+.eo-wrap table.eo-results-table td,
+.eo-wrap table.eo-results-table colgroup,
+.eo-wrap table.eo-results-table col {
+	border: 0;
+	box-shadow: none;
 	background: transparent;
 	box-sizing: border-box;
 }
