@@ -93,12 +93,13 @@
 .eo-results {
 	margin-top: 8px;
 	width: 100%;
+	overflow-x: auto;
 }
 
 /* --- Results Table --- */
 .eo-results-table {
 	width: 100%;
-	table-layout: fixed;
+	table-layout: auto;
 	border-collapse: collapse;
 	border-spacing: 0;
 	margin: 0;
@@ -120,16 +121,33 @@
 	box-sizing: border-box;
 }
 
+.eo-wrap table.eo-results-table th.eo-results-head-cell {
+	white-space: nowrap;
+	overflow-wrap: normal;
+	word-break: keep-all;
+	hyphens: none;
+}
+
 .eo-col-file {
 	width: 24%;
 }
 
 .eo-col-score {
-	width: 8%;
+	width: 1%;
 }
 
 .eo-col-preview {
 	width: 68%;
+}
+
+.eo-wrap .eo-results-head-file,
+.eo-wrap .eo-results-file {
+	min-width: 7ch;
+}
+
+.eo-wrap .eo-results-head-preview,
+.eo-wrap .eo-results-preview {
+	min-width: 9ch;
 }
 
 .eo-results-head-cell,
@@ -145,6 +163,10 @@
 	font-size: 0.85em;
 	font-weight: 600;
 	color: var(--text-muted);
+	white-space: nowrap;
+	overflow-wrap: normal;
+	word-break: normal;
+	hyphens: none;
 }
 
 .eo-results-row:hover,
@@ -173,6 +195,12 @@
 	text-align: left;
 	color: var(--text-muted);
 	white-space: nowrap;
+}
+
+.eo-results-head-score,
+.eo-results-score {
+	width: 1%;
+	min-width: 5ch;
 }
 
 .eo-results-score {
