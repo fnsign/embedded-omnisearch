@@ -39,23 +39,9 @@ An Obsidian plugin that renders a compact, inline search UI directly inside a no
 
 ## Installation
 
-### Via BRAT community plugin (preferred)
+### Via Obsidian Community Plugins (recommended)
 
-Install via the [BRAT community plugin](https://github.com/TfTHacker/obsidian42-brat) to obtain the latest version, as this plugin is not (yet) community approved.
-
-### Manually
-
-1. Copy this folder (`manifest.json`, `main.js`, `styles.css`) into your vault at:
-
-   ```
-   <vault>/.obsidian/plugins/embedded-omnisearch/
-   ```
-
-2. In Obsidian, open **Settings -> Community plugins** and enable **Embedded-Omnisearch**.
-
-3. Make sure Omnisearch is also enabled and has indexed your vault.
-
-4. Open **Settings -> Community plugins -> Embedded-Omnisearch** to configure defaults.
+Either search for "Embedded-Omnisearch" in Settings > Community plugins > Browse or add it directly from the [Obsidian Community](https://community.obsidian.md/plugins/embedded-omnisearch) and click on "Add to Obsidian".
 
 ## Usage
 
