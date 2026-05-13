@@ -190,15 +190,12 @@
 	color: var(--text-accent);
 }
 
-.eo-results-score,
-.eo-results-head-score {
-	text-align: left;
-	color: var(--text-muted);
-	white-space: nowrap;
-}
 
 .eo-results-head-score,
 .eo-results-score {
+	text-align: left;
+	color: var(--text-muted);
+	white-space: nowrap;
 	width: 1%;
 	min-width: 5ch;
 }
