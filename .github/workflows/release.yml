@@ -18,7 +18,7 @@ jobs:
       - name: Generate artifact attestations
         uses: actions/attest@v4
         with:
-          subject-path: 
+          subject-path: |
             main.js
             manifest.json
             styles.css
