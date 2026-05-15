@@ -1,4 +1,4 @@
-![GitHub Release](https://img.shields.io/github/v/release/fnsign/embedded-omnisearch) ![[GitHub License](https://img.shields.io/github/license/fnsign/embedded-omnisearch)](https://github.com/fnsign/embedded-omnisearch/blob/main/LICENSE) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/fnsign/embedded-omnisearch/total)
+![GitHub Release](https://img.shields.io/github/v/release/fnsign/embedded-omnisearch) ![GitHub License](https://img.shields.io/github/license/fnsign/embedded-omnisearch) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/fnsign/embedded-omnisearch/total)
 
 ----
 
