@@ -1,6 +1,6 @@
 name: Prepare Draft Release From Main
 
-on:
+"on":
   pull_request:
     types:
       - closed
