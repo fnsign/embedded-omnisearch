@@ -1,6 +1,6 @@
 name: Attest Plugin Provenance
 
-on:
+"on":
   workflow_dispatch:
 
 permissions:
