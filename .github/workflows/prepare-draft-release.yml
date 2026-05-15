@@ -1,0 +1,187 @@
+name: Prepare Draft Release From Main
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: prepare-draft-release-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    name: Prepare draft release
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch tags and merged PR head
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+          git fetch --force origin "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr-${PR_NUMBER}"
+
+      - name: Determine release version
+        id: version
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          normalize_version() {
+            local raw="$1"
+            raw="${raw#v}"
+            if [[ "$raw" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+              printf '%s\n' "$raw"
+            fi
+          }
+
+          pick_first_valid_tag() {
+            while IFS= read -r tag; do
+              [[ -n "$tag" ]] || continue
+              normalized="$(normalize_version "$tag" || true)"
+              if [[ -n "$normalized" ]]; then
+                printf '%s\n' "$normalized"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          version=""
+
+          version="$(normalize_version "$PR_HEAD_REF" || true)"
+
+          if [[ -z "$version" && -n "$PR_MERGE_SHA" ]]; then
+            version="$(git tag --points-at "$PR_MERGE_SHA" --sort=-version:refname | pick_first_valid_tag || true)"
+          fi
+
+          if [[ -z "$version" && -n "$PR_MERGE_SHA" ]] && git rev-parse "$PR_MERGE_SHA^2" >/dev/null 2>&1; then
+            base_before_merge="$(git rev-parse "$PR_MERGE_SHA^1")"
+            merged_branch_tip="$(git rev-parse "$PR_MERGE_SHA^2")"
+
+            while IFS= read -r tag; do
+              [[ -n "$tag" ]] || continue
+              tag_commit="$(git rev-list -n 1 "$tag")"
+              if git merge-base --is-ancestor "$tag_commit" "$base_before_merge"; then
+                continue
+              fi
+
+              version="$(normalize_version "$tag" || true)"
+              if [[ -n "$version" ]]; then
+                break
+              fi
+            done < <(git tag --merged "$merged_branch_tip" --sort=-version:refname)
+          fi
+
+          if [[ -z "$version" ]]; then
+            while IFS= read -r tag; do
+              [[ -n "$tag" ]] || continue
+              version="$(normalize_version "$tag" || true)"
+              if [[ -n "$version" ]]; then
+                break
+              fi
+            done < <(git tag --merged "refs/remotes/origin/pr-${PR_NUMBER}" --sort=-version:refname)
+          fi
+
+          if [[ -z "$version" ]]; then
+            echo "No semantic version could be derived from the merged PR branch or its tags." >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Update manifest version
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const manifestPath = 'manifest.json';
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          manifest.version = process.env.RELEASE_VERSION;
+          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+          NODE
+
+      - name: Run malware scan
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clamav
+          sudo freshclam
+          clamscan --infected --fail-if-cvd-older-than=7 main.js manifest.json styles.css
+
+      - name: Commit manifest update to main
+        id: commit
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- manifest.json; then
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "chore: prepare release ${RELEASE_VERSION}"
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate artifact provenance attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+
+      - name: Create draft release tag and draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.commit.outputs.sha }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if git rev-parse -q --verify "refs/tags/${RELEASE_VERSION}" >/dev/null 2>&1; then
+            echo "Tag ${RELEASE_VERSION} already exists." >&2
+            exit 1
+          fi
+
+          if gh release view "$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_VERSION} already exists." >&2
+            exit 1
+          fi
+
+          git tag "$RELEASE_VERSION" "$RELEASE_SHA"
+          git push origin "$RELEASE_VERSION"
+
+          gh release create "$RELEASE_VERSION" \
+            main.js \
+            styles.css \
+            manifest.json \
+            --draft \
+            --target "$RELEASE_SHA" \
+            --title "Embedded Omnisearch ${RELEASE_VERSION}" \
+            --notes ""
