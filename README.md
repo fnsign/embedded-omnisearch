@@ -1,6 +1,6 @@
-![GitHub Release](https://img.shields.io/github/v/release/fnsign/embedded-omnisearch?link=https%3A%2F%2Fcommunity.obsidian.md%2Fplugins%2Fembedded-omnisearch)
-![GitHub License](https://img.shields.io/github/license/fnsign/embedded-omnisearch?color=%23e4d312&link=https%3A%2F%2Fgithub.com%2Ffnsign%2Fembedded-omnisearch%2Fblob%2Fmain%2FLICENSE)
- ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/fnsign/embedded-omnisearch/total?label=plugin%20downloads&link=https%3A%2F%2Fcommunity.obsidian.md%2Fplugins%2Fembedded-omnisearch)
+[![GitHub Release](https://img.shields.io/github/v/release/fnsign/embedded-omnisearch)](https://community.obsidian.md/plugins/embedded-omnisearch)
+[![GitHub License](https://img.shields.io/github/license/fnsign/embedded-omnisearch?color=%23e4d312)](https://github.com/fnsign/embedded-omnisearch/blob/main/LICENSE)
+ [![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/fnsign/embedded-omnisearch/total?label=plugin%20downloads)](https://community.obsidian.md/plugins/embedded-omnisearch)
 
 
 ----
