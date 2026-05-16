@@ -100,7 +100,7 @@ jobs:
             main.js \
             styles.css \
             manifest.json \
-            --target "${{ steps.commit_manifest.outputs.head_sha }}" \
+            --target "main" \
             --title "Embedded Omnisearch ${VERSION}" \
             --draft \
             --notes ""
