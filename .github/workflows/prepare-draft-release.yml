@@ -80,6 +80,9 @@ jobs:
 
       - name: Scan Repository
         uses: hugoalh/scan-virus-ghaction@v0.20.1
+        with:
+          found_summary: true
+          statistics_summary: true
 
       - name: Generate artifact provenance attestation
         uses: actions/attest@v4

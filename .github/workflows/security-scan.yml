@@ -14,4 +14,7 @@ jobs:
           fetch-depth: 0
       - name: "Scan Repository"
         uses: "hugoalh/scan-virus-ghaction@v0.20.1"
+        with:
+          found_summary: true
+          statistics_summary: true
         
