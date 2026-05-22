@@ -159,3 +159,7 @@ MIT
 
 ## Credits
 [scambier](https://github.com/scambier) for the great Omnisearch plugin.
+
+## Donations
+- [<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="BuyMeACoffee" width="100">](https://www.buymeacoffee.com/fozin)
+- [PayPal.me](paypal.me/FoziN)
