@@ -6,17 +6,13 @@
 	display: none;
 }
 
-/* --- Minimal theme: override table-width rules on our container ---
-   Minimal applies special width/margin/padding to any sizer > div that :has(table)
-   for table drag-handle support. Our widget contains a <table> so we get those
-   rules too. Reset to normal content div behavior (centered, no drag padding).
-   Uses descendant :has() (not direct child) so it also works inside callouts. */
+/* --- Minimal theme: override table-width rules on our container --- */
 .markdown-preview-view.is-readable-line-width
-	.markdown-preview-sizer > div:has(.block-language-embedded-omnisearch) {
-	width: var(--line-width) !important;
-	max-width: var(--max-width) !important;
-	margin-inline: var(--content-margin, auto) !important;
-	padding-inline-start: 0 !important;
+	.markdown-preview-sizer > div.el-pre.eo-minimal-reset {
+	width: var(--line-width);
+	max-width: var(--max-width);
+	margin-inline: var(--content-margin, auto);
+	padding-inline-start: 0;
 }
 
 /* --- Code-block container (Obsidian-generated parent) --- */
@@ -38,9 +34,9 @@
 }
 
 /* --- Override Minimal theme table styling inside our widget --- */
-.eo-wrap table.eo-results-table {
-	min-width: 0 !important;
-	margin-inline: 0 !important;
+.block-language-embedded-omnisearch.eo-wrap table.eo-results-table {
+	min-width: 0;
+	margin-inline: 0;
 }
 
 /* --- Input --- */

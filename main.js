@@ -300,7 +300,22 @@ class SearchView extends obsidian.Component {
 	onunload() {
 		clearTimeout(this.timer);
 		if (this.popover && this.popover.parentNode) this.popover.remove();
+		this.clearMinimalThemeResetMarker();
 		this.plugin.unregisterSearchView(this);
+	}
+
+	markMinimalThemeResetContainer() {
+		const root = this.rootEl;
+		const container = root && root.parentElement;
+		if (!container || !container.classList.contains("el-pre")) return;
+		container.addClass("eo-minimal-reset");
+		this.minimalThemeResetContainer = container;
+	}
+
+	clearMinimalThemeResetMarker() {
+		if (!this.minimalThemeResetContainer) return;
+		this.minimalThemeResetContainer.removeClass("eo-minimal-reset");
+		this.minimalThemeResetContainer = null;
 	}
 
 	getPageSize() {
@@ -323,6 +338,7 @@ class SearchView extends obsidian.Component {
 		const root = this.rootEl;
 		root.empty();
 		root.addClass("omnisearch-modal", "eo-wrap");
+		this.markMinimalThemeResetContainer();
 
 		/* Input */
 		const inputWrap = root.createDiv({ cls: "omnisearch-input-container eo-input-wrap" });
