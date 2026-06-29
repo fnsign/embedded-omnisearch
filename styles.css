@@ -6,18 +6,10 @@
 	display: none;
 }
 
-/* --- Minimal theme: override table-width rules on our container --- */
-.markdown-preview-view.is-readable-line-width
-	.markdown-preview-sizer > div.el-pre.eo-minimal-reset {
-	width: var(--line-width);
-	max-width: var(--max-width);
-	margin-inline: var(--content-margin, auto);
-	padding-inline-start: 0;
-}
-
 /* --- Code-block container (Obsidian-generated parent) --- */
 .block-language-embedded-omnisearch {
 	width: 100%;
+	min-width: 0;
 	max-width: 100%;
 	overflow: hidden;
 	box-sizing: border-box;
@@ -27,16 +19,11 @@
 .eo-wrap {
 	margin: 16px auto 10px;
 	width: 100%;
+	min-width: 0;
 	max-width: 100%;
 	overflow: hidden;
 	box-sizing: border-box;
 	font-family: var(--font-interface);
-}
-
-/* --- Override Minimal theme table styling inside our widget --- */
-.block-language-embedded-omnisearch.eo-wrap table.eo-results-table {
-	min-width: 0;
-	margin-inline: 0;
 }
 
 /* --- Input --- */
@@ -118,68 +105,30 @@
 .eo-results {
 	margin-top: 8px;
 	width: 100%;
-	overflow-x: auto;
+	min-width: 0;
 }
 
-/* --- Results Table --- */
-.eo-results-table {
+/* --- Results Grid --- */
+.eo-results-grid {
 	width: 100%;
+	min-width: 0;
 	max-width: 100%;
-	table-layout: fixed;
-	border-collapse: collapse;
-	border-spacing: 0;
-	margin: 0;
-	border: 0;
 	background: transparent;
 }
 
-.eo-wrap table.eo-results-table,
-.eo-wrap table.eo-results-table thead,
-.eo-wrap table.eo-results-table tbody,
-.eo-wrap table.eo-results-table tr,
-.eo-wrap table.eo-results-table th,
-.eo-wrap table.eo-results-table td,
-.eo-wrap table.eo-results-table colgroup,
-.eo-wrap table.eo-results-table col {
-	border: 0;
-	box-shadow: none;
+.eo-results-head-row,
+.eo-results-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(4.5ch, max-content) minmax(0, 3fr);
+	min-width: 0;
 	background: transparent;
-	box-sizing: border-box;
-}
-
-.eo-wrap table.eo-results-table th.eo-results-head-cell {
-	white-space: nowrap;
-	overflow-wrap: normal;
-	word-break: keep-all;
-	hyphens: none;
-}
-
-.eo-col-file {
-	width: 24%;
-}
-
-.eo-col-score {
-	width: 1%;
-}
-
-.eo-col-preview {
-	width: 68%;
-}
-
-.eo-wrap .eo-results-head-file,
-.eo-wrap .eo-results-file {
-	min-width: 7ch;
-}
-
-.eo-wrap .eo-results-head-preview,
-.eo-wrap .eo-results-preview {
-	min-width: 9ch;
 }
 
 .eo-results-head-cell,
 .eo-results-cell {
 	padding: 8px 10px;
-	vertical-align: top;
+	min-width: 0;
+	box-sizing: border-box;
 }
 
 .eo-results-head-cell {

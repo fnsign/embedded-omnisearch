@@ -300,22 +300,7 @@ class SearchView extends obsidian.Component {
 	onunload() {
 		clearTimeout(this.timer);
 		if (this.popover && this.popover.parentNode) this.popover.remove();
-		this.clearMinimalThemeResetMarker();
 		this.plugin.unregisterSearchView(this);
-	}
-
-	markMinimalThemeResetContainer() {
-		const root = this.rootEl;
-		const container = root && root.parentElement;
-		if (!container || !container.classList.contains("el-pre")) return;
-		container.addClass("eo-minimal-reset");
-		this.minimalThemeResetContainer = container;
-	}
-
-	clearMinimalThemeResetMarker() {
-		if (!this.minimalThemeResetContainer) return;
-		this.minimalThemeResetContainer.removeClass("eo-minimal-reset");
-		this.minimalThemeResetContainer = null;
 	}
 
 	getPageSize() {
@@ -338,7 +323,6 @@ class SearchView extends obsidian.Component {
 		const root = this.rootEl;
 		root.empty();
 		root.addClass("omnisearch-modal", "eo-wrap");
-		this.markMinimalThemeResetContainer();
 
 		/* Input */
 		const inputWrap = root.createDiv({ cls: "omnisearch-input-container eo-input-wrap" });
@@ -361,7 +345,7 @@ class SearchView extends obsidian.Component {
 
 		/* Results list */
 		this.resultsEl = root.createDiv({ cls: "eo-results" });
-		this.buildResultsTable();
+		this.buildResultsGrid();
 
 		/* Pagination */
 		this.pageBar = this.createPaginationBar(root);
@@ -375,22 +359,16 @@ class SearchView extends obsidian.Component {
 		return this.popover;
 	}
 
-	buildResultsTable() {
-		const tbl = this.resultsEl.createEl("table", { cls: "eo-results-table" });
-		setElementHidden(tbl, true);
-		const colgroup = tbl.createEl("colgroup");
-		colgroup.createEl("col", { cls: "eo-col-file" });
-		colgroup.createEl("col", { cls: "eo-col-score" });
-		colgroup.createEl("col", { cls: "eo-col-preview" });
+	buildResultsGrid() {
+		const grid = this.resultsEl.createDiv({ cls: "eo-results-grid" });
+		setElementHidden(grid, true);
+		const headRow = grid.createDiv({ cls: "eo-results-head-row" });
+		headRow.createDiv({ cls: "eo-results-head-cell eo-results-head-file", text: "File" });
+		headRow.createDiv({ cls: "eo-results-head-cell eo-results-head-score", text: "Score" });
+		headRow.createDiv({ cls: "eo-results-head-cell eo-results-head-preview", text: "Preview" });
 
-		const thead = tbl.createEl("thead", { cls: "eo-results-head" });
-		const headRow = thead.createEl("tr", { cls: "eo-results-head-row" });
-		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-file", text: "File" });
-		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-score", text: "Score" });
-		headRow.createEl("th", { cls: "eo-results-head-cell eo-results-head-preview", text: "Preview" });
-
-		this.resultsTable = tbl;
-		this.resultsBody = tbl.createEl("tbody", { cls: "eo-results-body" });
+		this.resultsGrid = grid;
+		this.resultsBody = grid.createDiv({ cls: "eo-results-body" });
 	}
 
 	createPaginationBar(parent) {
@@ -510,7 +488,7 @@ class SearchView extends obsidian.Component {
 
 	resetResults() {
 		if (this.resultsBody) this.resultsBody.empty();
-		if (this.resultsTable) setElementHidden(this.resultsTable, true);
+		if (this.resultsGrid) setElementHidden(this.resultsGrid, true);
 		this.results = [];
 		this.page = 0;
 		this.terms = [];
@@ -578,22 +556,22 @@ class SearchView extends obsidian.Component {
 
 	renderRow(result) {
 		const path = String(result.path || "");
-		const row = this.resultsBody.createEl("tr", { cls: "eo-results-row" });
+		const row = this.resultsBody.createDiv({ cls: "eo-results-row" });
 		row.dataset.filepath = path;
 
-		const fileCell = row.createEl("td", { cls: "eo-results-cell eo-results-file" });
+		const fileCell = row.createDiv({ cls: "eo-results-cell eo-results-file" });
 		fileCell.createEl("a", {
 			cls: "internal-link eo-results-link",
 			text: bname(path),
 			attr: { href: path, "data-href": path }
 		});
 
-		row.createEl("td", {
+		row.createDiv({
 			cls: "eo-results-cell eo-results-score",
 			text: String(Math.round(result.score || 0))
 		});
 
-		const previewCell = row.createEl("td", { cls: "eo-results-cell eo-results-preview" });
+		const previewCell = row.createDiv({ cls: "eo-results-cell eo-results-preview" });
 		appendHighlightedText(previewCell, result.excerpt, this.getResultTerms(result));
 	}
 
@@ -608,7 +586,7 @@ class SearchView extends obsidian.Component {
 		this.statusEl.textContent = this.results.length + " results \u2014 page " + (this.page + 1) + " of " + total;
 		this.resultsBody.empty();
 		for (let i = 0; i < items.length; i++) this.renderRow(items[i]);
-		setElementHidden(this.resultsTable, false);
+		setElementHidden(this.resultsGrid, false);
 
 		this.updatePaginationControls(total);
 	}
