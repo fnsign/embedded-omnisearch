@@ -112,7 +112,7 @@ You can override any class in an Obsidian CSS snippet. Key classes:
 - `.eo-clear` — clear button
 - `.eo-status` — status / result count line
 - `.eo-results` — results container
-- `.eo-results-table` — result table
+- `.eo-results-grid` — result grid
 - `.eo-results-row` / `.eo-results-cell` — result rows and cells
 - `.eo-results-link` — clickable note link
 - `.eo-page-bar` / `.eo-page-btn` / `.eo-page-info` — pagination
