@@ -79,7 +79,7 @@ function parseFilterValues(value) {
 }
 
 function quoteFilterValue(value) {
-	return '"' + String(value).replace(/"/g, '\\"') + '"';
+	return '"' + String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
 }
 
 function buildFilterQuery(filters) {
