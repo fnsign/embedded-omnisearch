@@ -7,7 +7,7 @@
 
 # Embedded-Omnisearch
 
-An Obsidian plugin that renders a compact, inline search UI directly inside a note. It is powered by the [Omnisearch](https://github.com/scambier/obsidian-omnisearch) API and includes plugin settings for default page size and highlight appearance.
+An Obsidian plugin that renders a compact, inline search UI directly inside a note. It is powered by the [Omnisearch](https://github.com/scambier/obsidian-omnisearch) API and includes plugin settings for default page size, filter visibility, and highlight appearance.
 
 ![](assets/embedded-omnisearch-demo.gif)
 
@@ -25,6 +25,8 @@ An Obsidian plugin that renders a compact, inline search UI directly inside a no
 - Debounced search input (350 ms).
 - Plugin settings page for default results per page, highlight color, and highlight opacity.
 - Code-block-level `pageSize` override that takes precedence over the global default.
+- Code-block-level Omnisearch filters for paths, file types, and exclusions.
+- Optional display of the active code-block filters in the search field placeholder.
 - Proper lifecycle management with registered views refreshed when settings change.
 
 ## Requirements
@@ -66,14 +68,24 @@ You can set options inside the code block. Currently supported:
 | Option     | Default | Description                        |
 | ---------- | ------- | ---------------------------------- |
 | `pageSize` | Plugin setting | Number of search results per page. |
+| `path`     | None | Restrict results to a folder or path. |
+| `ext`      | None | Restrict results to one or more file types. |
+| `exclude`  | None | Exclude notes containing one or more words or phrases. |
+
+The filter syntax is passed to Omnisearch. Use one or more filter lines in the code block. Paths and phrases may be quoted; file extensions can be separated by spaces. `exclude` and `exclusions` are both accepted.
 
 Example:
 
 ````
 ```embedded-omnisearch
 pageSize: 20
+path: Projects/Obsidian
+ext: md canvas
+exclude: archive "do not search"
 ```
 ````
+
+This searches only below `Projects/Obsidian`, includes Markdown and Canvas files, and excludes results containing `archive` or the phrase `do not search`. The configured filters are applied to every query typed into this embedded search.
 
 ### Plugin Settings
 
@@ -82,6 +94,7 @@ The plugin settings page provides defaults for the embedded search UI:
 | Setting | Default | Description |
 | ------- | ------- | ----------- |
 | `Results per page` | `10` | Default page size for embedded searches. |
+| `Show filters in search placeholder` | `Off` | Shows the filters configured in each code block inside its search field placeholder. This is only a visual hint; it does not change which filters are applied. |
 | `Highlight color` | `#cca300` | Base color used for highlighted matches. |
 | `Highlight opacity` | `35%` | Opacity of the highlight background. |
 
@@ -90,7 +103,7 @@ The plugin settings page provides defaults for the embedded search UI:
 1. The plugin registers a **Markdown code block processor** for the language `embedded-omnisearch`.
 2. When Obsidian renders such a block, the plugin creates a `SearchView` component attached to the block's DOM element.
 3. The plugin watches active markdown leaves and switches notes containing an embedded search block to preview mode when needed.
-4. On each query the view calls `globalThis.omnisearch.search(query)` and renders the results as a styled table.
+4. On each query the view prepends the configured `path`, `ext`, and exclusion filters to the query and calls `globalThis.omnisearch.search(query)`, then renders the results as a styled table.
 5. Each result shows the linked file name, a rounded relevance score, and an excerpt with accent-insensitive highlighted matches.
 6. Highlight color and opacity are exposed through plugin settings and applied via the `--eo-highlight-color` CSS variable.
 7. Results are split into pages; `<` / `>` buttons navigate between pages.
