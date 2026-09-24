@@ -3,7 +3,7 @@
   "name": "Embedded-Omnisearch",
   "version": "1.4.0",
   "minAppVersion": "1.0.0",
-  "description": "Inline search UI powered by Omnisearch, with configurable page size, highlight color, and highlight opacity.",
+  "description": "Inline search UI powered by Omnisearch, with configurable page size, highlight color, highlight opacity and filters.",
   "author": "fnsign",
   "isDesktopOnly": false
 }
