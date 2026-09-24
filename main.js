@@ -7,7 +7,7 @@ const obsidian = require('obsidian');
 const RE_DIACRITICS = /[\u0300-\u036f]/g;
 const RE_WS = /\s+/;
 const RE_EMBEDDED_BLOCK = /^```embedded-omnisearch(?:\s|$)/m;
-const DEFAULT_SETTINGS = { pageSize: 10, highlightColor: "#cca300", highlightOpacity: 0.35 };
+const DEFAULT_SETTINGS = { pageSize: 10, highlightColor: "#cca300", highlightOpacity: 0.35, showFiltersInPlaceholder: false };
 const HIDDEN_CLASS = "eo-hidden";
 
 /* === Helpers === */
@@ -68,6 +68,28 @@ function extractPlainText(html) {
 function setElementHidden(el, hidden) {
 	if (!el) return;
 	el.classList.toggle(HIDDEN_CLASS, !!hidden);
+}
+
+function parseFilterValues(value) {
+	const values = [];
+	const re = /"([^"]+)"|'([^']+)'|([^\s,]+)/g;
+	let match;
+	while ((match = re.exec(String(value || "")))) values.push(match[1] || match[2] || match[3]);
+	return values.filter(Boolean);
+}
+
+function quoteFilterValue(value) {
+	return '"' + String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+}
+
+function buildFilterQuery(filters) {
+	const parts = [];
+	for (const path of filters.paths) parts.push("path:" + quoteFilterValue(path));
+	if (filters.extensions.length) parts.push("ext:" + quoteFilterValue(filters.extensions.join(" ")));
+	for (const exclusion of filters.exclusions) {
+		parts.push("-" + (/\s/.test(exclusion) ? quoteFilterValue(exclusion) : exclusion));
+	}
+	return parts.join(" ");
 }
 
 /* === Accent-insensitive fold === */
@@ -175,7 +197,8 @@ class EmbeddedOmnisearchPlugin extends obsidian.Plugin {
 		this.settings = {
 			pageSize: clampPageSize(data.pageSize),
 			highlightColor: normalizeHexColor(data.highlightColor),
-			highlightOpacity: clampOpacity(data.highlightOpacity)
+			highlightOpacity: clampOpacity(data.highlightOpacity),
+			showFiltersInPlaceholder: data.showFiltersInPlaceholder === true
 		};
 	}
 
@@ -260,14 +283,25 @@ class EmbeddedOmnisearchPlugin extends obsidian.Plugin {
 	}
 
 	parseConfig(source) {
-		const cfg = { pageSize: this.settings.pageSize, hasPageSizeOverride: false };
+		const filters = { paths: [], extensions: [], exclusions: [] };
+		const cfg = { pageSize: this.settings.pageSize, hasPageSizeOverride: false, filterQuery: "" };
 		for (const line of (source || "").split("\n")) {
 			const m = line.match(/^\s*pageSize\s*:\s*(\d+)/);
 			if (m) {
 				cfg.pageSize = clampPageSize(m[1]);
 				cfg.hasPageSizeOverride = true;
+				continue;
+			}
+			const filter = line.match(/^\s*(path|ext|exclude|exclusions)\s*:\s*(.*?)\s*$/i);
+			if (!filter) continue;
+			const values = parseFilterValues(filter[2]);
+			switch (filter[1].toLowerCase()) {
+				case "path": filters.paths.push(...values); break;
+				case "ext": filters.extensions.push(...values); break;
+				default: filters.exclusions.push(...values); break;
 			}
 		}
+		cfg.filterQuery = buildFilterQuery(filters);
 		return cfg;
 	}
 }
@@ -309,6 +343,7 @@ class SearchView extends obsidian.Component {
 	}
 
 	onSettingsChanged() {
+		this.setPlaceholder();
 		const nextPageSize = this.getPageSize();
 		if (nextPageSize === this.pageSize) return;
 		this.pageSize = nextPageSize;
@@ -328,8 +363,9 @@ class SearchView extends obsidian.Component {
 		const inputWrap = root.createDiv({ cls: "omnisearch-input-container eo-input-wrap" });
 		this.input = inputWrap.createEl("input", {
 			cls: "omnisearch-input-field",
-			attr: { type: "text", placeholder: "Find with Omnisearch...", spellcheck: "false", autocomplete: "off" }
+			attr: { type: "text", spellcheck: "false", autocomplete: "off" }
 		});
+		this.setPlaceholder();
 
 		this.clearBtn = inputWrap.createEl("button", {
 			cls: "eo-clear",
@@ -350,6 +386,15 @@ class SearchView extends obsidian.Component {
 		/* Pagination */
 		this.pageBar = this.createPaginationBar(root);
 		this.paginationBars = [this.topPageBar, this.pageBar];
+	}
+
+	setPlaceholder() {
+		if (!this.input) return;
+		const base = "Find with Omnisearch...";
+		const filters = this.cfg && this.cfg.filterQuery;
+		this.input.placeholder = filters && this.plugin.settings.showFiltersInPlaceholder
+			? base + " " + filters
+			: base;
 	}
 
 	ensurePopover() {
@@ -533,7 +578,8 @@ class SearchView extends obsidian.Component {
 		if (!api) { this.statusEl.textContent = "\u274c Omnisearch API not available"; return; }
 
 		this.statusEl.textContent = "Searching\u2026";
-		const res = await api.search(q);
+		const searchQuery = [this.cfg.filterQuery, q].filter(Boolean).join(" ");
+		const res = await api.search(searchQuery);
 		if (!res || !res.length) { this.statusEl.textContent = 'No results for "' + q + '"'; return; }
 
 		this.results = res;
@@ -682,6 +728,32 @@ class EmbeddedOmnisearchSettingTab extends obsidian.PluginSettingTab {
 		});
 	}
 
+	createPlaceholderSetting(containerEl) {
+		const setting = new obsidian.Setting(containerEl)
+			.setName("Show filters in search placeholder");
+		const description = document.createDocumentFragment();
+		const explanation = document.createElement("div");
+		explanation.textContent = "When enabled, filters from each embedded search block are shown in its input placeholder. Configure them like this:";
+		description.appendChild(explanation);
+		const example = document.createElement("pre");
+		const code = document.createElement("code");
+		code.textContent = "```embedded-omnisearch\npath: Notes/Subfolder\next: md pdf\nexclude: archive \"do not search\"\n```";
+		example.appendChild(code);
+		description.appendChild(example);
+		setting.setDesc(description);
+
+		setting.addToggle((toggle) => {
+			toggle.setValue(this.plugin.settings.showFiltersInPlaceholder);
+			toggle.onChange(async (value) => {
+				await this.updateSetting("showFiltersInPlaceholder", value);
+			});
+		});
+
+		this.addResetButton(setting, async () => {
+			await this.updateSetting("showFiltersInPlaceholder", DEFAULT_SETTINGS.showFiltersInPlaceholder);
+		});
+	}
+
 	createHighlightOpacitySetting(containerEl) {
 		let sliderControl = null;
 		let textControl = null;
@@ -737,6 +809,7 @@ class EmbeddedOmnisearchSettingTab extends obsidian.PluginSettingTab {
 		this.createPageSizeSetting(containerEl);
 		this.createHighlightColorSetting(containerEl);
 		this.createHighlightOpacitySetting(containerEl);
+		this.createPlaceholderSetting(containerEl);
 	}
 }
 
