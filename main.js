@@ -730,8 +730,17 @@ class EmbeddedOmnisearchSettingTab extends obsidian.PluginSettingTab {
 
 	createPlaceholderSetting(containerEl) {
 		const setting = new obsidian.Setting(containerEl)
-			.setName("Show filters in search placeholder")
-			.setDesc("When enabled, the filters from each embedded search block are shown in its input placeholder.");
+			.setName("Show filters in search placeholder");
+		const description = document.createDocumentFragment();
+		const explanation = document.createElement("div");
+		explanation.textContent = "When enabled, filters from each embedded search block are shown in its input placeholder. Configure them like this:";
+		description.appendChild(explanation);
+		const example = document.createElement("pre");
+		const code = document.createElement("code");
+		code.textContent = "```embedded-omnisearch\npath: Notes/Subfolder\next: md pdf\nexclude: archive \"do not search\"\n```";
+		example.appendChild(code);
+		description.appendChild(example);
+		setting.setDesc(description);
 
 		setting.addToggle((toggle) => {
 			toggle.setValue(this.plugin.settings.showFiltersInPlaceholder);
@@ -798,9 +807,9 @@ class EmbeddedOmnisearchSettingTab extends obsidian.PluginSettingTab {
 		containerEl.empty();
 
 		this.createPageSizeSetting(containerEl);
-		this.createPlaceholderSetting(containerEl);
 		this.createHighlightColorSetting(containerEl);
 		this.createHighlightOpacitySetting(containerEl);
+		this.createPlaceholderSetting(containerEl);
 	}
 }
 
